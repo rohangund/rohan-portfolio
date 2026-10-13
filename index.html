@@ -1787,43 +1787,66 @@
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        async function initSupabase() {
-            try {
-                // Fetch environment variables from the Vercel API route at runtime
-                const response = await fetch('/api/config');
-                const config = await response.json();
+<script>
+    async function loadSupabaseProjects() {
+        console.log("Starting Supabase load...");
+        try {
+            const response = await fetch('/api/config');
+            console.log("Config response status:", response.status);
+            const config = await response.json();
+            console.log("Config data received:", config);
 
-                if (!config.supabaseUrl || !config.supabaseKey) {
-                    console.error("Supabase configuration missing from environment variables.");
-                    return;
-                }
-
-                // Initialize Supabase client dynamically
-                const supabaseClient = window.supabase.createClient(
-                    config.supabaseUrl,
-                    config.supabaseKey
-                );
-
-                // Test connection and fetch projects
-                const { data, error } = await supabaseClient
-                    .from("projects")
-                    .select("id, title, description")
-                    .order("sort_order");
-
-                if (error) {
-                    console.error("Supabase error:", error.message);
-                    return;
-                }
-
-                console.log("Projects loaded from Supabase at runtime:", data);
-            } catch (err) {
-                console.error("Failed to fetch runtime config:", err);
+            if (!config.supabaseUrl || !config.supabaseKey) {
+                console.error("Supabase configuration missing from API response.");
+                return;
             }
-        }
 
-        // Run on page load
-        initSupabase();
-    </script>
+            const supabaseClient = window.supabase.createClient(
+                config.supabaseUrl,
+                config.supabaseKey
+            );
+
+            const { data, error } = await supabaseClient
+                .from("projects")
+                .select("id, title, description")
+                .order("sort_order");
+
+            if (error) {
+                console.error("Supabase query error:", error.message);
+                return;
+            }
+
+            console.log("Fetched projects data:", data);
+            const grid = document.getElementById('projects-grid');
+            if (!grid) {
+                console.error("Projects grid element not found!");
+                return;
+            }
+            
+            grid.innerHTML = ""; 
+
+            data.forEach(project => {
+                const card = document.createElement('div');
+                card.className = 'project-card reveal active';
+                card.innerHTML = `
+                    <div>
+                        <div class="project-icon-wrapper">
+                            <i class="fa-solid fa-code"></i>
+                        </div>
+                        <h3 class="project-title">${project.title}</h3>
+                        <p class="project-description">${project.description}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            console.log("Projects successfully rendered.");
+        } catch (err) {
+            console.error("Catch block error:", err);
+        }
+    }
+
+    loadSupabaseProjects();
+</script>
 </body>
 </html>
